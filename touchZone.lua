@@ -12,8 +12,8 @@ function touchZone:init(x, y, width, height)
 end
 
 function touchZone:touchInside(v)
-    local hit = self.frame:vectorIsInside(v)
-    if hit then
+    local justHit = self.frame:vectorIsInside(v)
+    if justHit then
         for _, child in ipairs(self.children) do
             local childHit = child:touchInside(v)
             if childHit then return child end
@@ -34,10 +34,10 @@ end
 function touchZone:onTouchMove(position, delta) end
 
 function touchZone:onTouchUp(position)
-    print(position, self.frame, self:touchInside(position))
     if self.hit and self:touchInside(position) then
         self:onTouchUpInside(position)
     end
+    self.hit = false
 end
 
 function touchZone:onTouchUpInside(position) end

@@ -13,15 +13,33 @@ local screenScale
 
 local propagateLeftMouseEvent = {}
 local rootTouchZones = {}
+
 local redShape = TouchZone(15, 35, 70, 15)
-function redShape:onTouchMove(position, delta)
+redShape.draw = function(self)
+    if self.hit then
+        love.graphics.setColor(255, 0, 0, 128)
+    else
+        love.graphics.setColor(255, 0, 0, 255)
+    end
+    love.graphics.rectangle("fill", self.frame.origin.x, self.frame.origin.y, self.frame.size.x, self.frame.size.y)
+end
+redShape.onTouchMove = function(self, position, delta)
     self.frame.origin = self.frame.origin + (delta)
 end
+
 local yellowShape = TouchZone(15, 55, 50, 15)
+yellowShape.draw = function(self)
+    if self.hit then
+        love.graphics.setColor(255, 255, 0, 128)
+    else
+        love.graphics.setColor(255, 255, 0, 255)
+    end
+    love.graphics.rectangle("fill", self.frame.origin.x, self.frame.origin.y, self.frame.size.x, self.frame.size.y)
+end
 yellowShape.onTouchUpInside = function(self)
-    print("lksjdlkgj")
     love.event.quit()
 end
+
 table.insert(rootTouchZones, yellowShape)
 table.insert(rootTouchZones, redShape)
 
@@ -85,12 +103,10 @@ function love.draw()
     love.graphics.setColor(15, 30, 15, 255)
     --love.graphics.setColor(255, 255, 255, 255)
     love.graphics.rectangle("fill", unpack(backgroundSize))
-    love.graphics.setColor(255, 0, 0, 255)
-    love.graphics.rectangle("fill", redShape.frame.origin.x, redShape.frame.origin.y, redShape.frame.size.x, redShape.frame.size.y)
-    love.graphics.setColor(255, 255, 0, 255)
-    love.graphics.rectangle("fill", yellowShape.frame.origin.x, yellowShape.frame.origin.y, yellowShape.frame.size.x, yellowShape.frame.size.y)
     love.graphics.setColor(60, 255, 60, 240)
     love.graphics.print("Welcome to Flag maker 2.0", 10, 10, 0, 1, 1)
+    redShape:draw()
+    yellowShape:draw()
     
     love.graphics.rectangle("fill", convertedTouchLocation.x - 4, convertedTouchLocation.y, 3, 1)
     love.graphics.rectangle("fill", convertedTouchLocation.x + 2, convertedTouchLocation.y, 3, 1)
