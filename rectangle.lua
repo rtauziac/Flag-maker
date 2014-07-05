@@ -1,19 +1,20 @@
 ﻿--rectangle
 
-Vector2 = require "hump.vector"
+local Class = require "hump.class"
+local Vector2 = require "hump.vector"
 
-rectangle = {}
-rectangle.__index = rectangle
+local rectangle = Class{}
 
-local function new(x, y, width, height)
-    return setmetatable({origin = Vector2(x or 0, y or 0), size = Vector2(width or 0, height or 0)}, rectangle)
+function rectangle:init(x, y, width, height)
+    self.origin = Vector2(x or 0, y or 0)
+    self.size = Vector2(width or 0, height or 0) 
 end
 
 local function isrectangle(v)
     return getmetatable(v) == rectangle
 end
 
-local zero = new(Vector2.zero, Vector2.zero)
+local zero = rectangle(0, 0, 0, 0)
 
 function rectangle:unpack()
     return self.origin:unpack(), self.size:unpack()
@@ -28,5 +29,5 @@ function rectangle:__tostring()
     return tostring(self.origin)..","..tostring(self.size)
 end
 
-return setmetatable({new = new, isrectangle = isrectangle, zero = zero},
-{__call = function(_, ...) return new(...) end})
+return setmetatable({isrectangle = isrectangle, zero = zero},
+{__call = function(_, ...) return rectangle(...) end})

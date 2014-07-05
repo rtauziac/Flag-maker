@@ -1,15 +1,14 @@
 ﻿--touchZone
 
-Rectangle = require "rectangle"
+local Class = require "hump.class"
+local Rectangle = require "rectangle"
 
-local touchZone = {}
-touchZone.__index = touchZone
+local touchZone = Class{}
 
-local function new(x, y, width, height)
-    return setmetatable({
-        frame = Rectangle(x or 0, y or 0, width or 0, height or 0),
-        children = {}},
-        touchZone)
+function touchZone:init(x, y, width, height)
+    self.frame = Rectangle(x or 0, y or 0, width or 0, height or 0)
+    self.children = {}
+    self.hit = false
 end
 
 function touchZone:touchInside(v)
@@ -28,5 +27,20 @@ function touchZone:addChild(c)
     table.insert(self.children, c)
 end
 
-return setmetatable({new = new},
-    {__call = function(_, ...) return new(...) end})
+function touchZone:onTouchDown(position)
+    self.hit = true
+end
+
+function touchZone:onTouchMove(position, delta) end
+
+function touchZone:onTouchUp(position)
+    print(position, self.frame, self:touchInside(position))
+    if self.hit and self:touchInside(position) then
+        self:onTouchUpInside(position)
+    end
+end
+
+function touchZone:onTouchUpInside(position) end
+
+return setmetatable({},
+    {__call = function(_, ...) return touchZone(...) end})
