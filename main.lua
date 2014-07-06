@@ -162,7 +162,7 @@ function love.load()
     sceneCamera:lookAt(designResolution.x / 2, designResolution.y / 2)
     screenScale = designResolution.y / love.window.getHeight()
     
-    mainShader = love.graphics.newShader("shader.fs")
+    mainShader = love.graphics.newShader("shader.frag")
     mainShader:send("screen_size", {love.window.getWidth(), love.window.getHeight()})
     mainShader:send("elapsed_time", shaderElapsedTime)
     love.graphics.setFont(computerFont)
