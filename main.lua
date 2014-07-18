@@ -199,6 +199,8 @@ end
 
 function gameStates.menu:draw()
     local convertedTouchLocation = (Vector2(love.mouse.getPosition()) * screenScale) - Vector2(((love.window.getWidth() * screenScale) - designResolution.x) / 2, 0)
+    convertedTouchLocation.x = floor(convertedTouchLocation.x)
+    convertedTouchLocation.y = floor(convertedTouchLocation.y)
     
     love.graphics.setCanvas(mainCanvas)
     love.graphics.setColor(255, 255, 255, 255)
@@ -402,6 +404,8 @@ end
 
 function gameStates.createNewFlag:draw()
     local convertedTouchLocation = (Vector2(love.mouse.getPosition()) * screenScale) - Vector2(((love.window.getWidth() * screenScale) - designResolution.x) / 2, 0)
+    convertedTouchLocation.x = floor(convertedTouchLocation.x)
+    convertedTouchLocation.y = floor(convertedTouchLocation.y)
     
     love.graphics.setCanvas(mainCanvas)
     love.graphics.setColor(255, 255, 255, 255)
