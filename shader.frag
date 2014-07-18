@@ -16,7 +16,7 @@ vec4 effect(vec4 color, Image texture, vec2 texture_coords, vec2 screen_coords)
     
     vec4 textCol = Texel(texture, texture_coords);
     
-    color = (color * (((x_coord * y_coord) * 0.4) + 0.6)) + (sin((elapsed_time * 20) + (screen_coords.y / screen_size.y * 600)) * 0.03);
+    color = (color * (((x_coord * y_coord) * 0.3) + 0.7)) + (sin((elapsed_time * 20) + (screen_coords.y / screen_size.y * 600)) * 0.03);
     
     return color * textCol;
 }

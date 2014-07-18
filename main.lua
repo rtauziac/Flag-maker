@@ -5,6 +5,8 @@ local Timer = require "hump.timer"
 local Rectangle = require "rectangle"
 local TouchZone = require "touchZone"
 
+local min, max, floor = math.min, math.max, math.floor
+
 local designResolution = {x = 320, y = 240}
 local backgroundSize = {0, 0, designResolution.x, designResolution.y}
 local mainShader = nil
@@ -30,77 +32,70 @@ local gameStates = {
 }
 
 function RGBtoHSV(r, g, b)
-    local h, v, s
     local valMin, valMax, delta
-    valMin = math.min(r, math.min(g, b))
-    valMax = math.max(r, math.max(g, b))
-    v = valMax
+    local h, s, v
+    
+    valMin = min(r, min(g, b))
+    valMax = max(r, max(g, b))
+
+    v = valMax  -- v
     delta = valMax - valMin
-    if valMax ~= 0 then
-        s = delta / valMax      -- s
+    if valMax > 0  then -- NOTE: if Max is == 0, this divide would cause a crash
+        s = (delta / valMax) -- s
     else
-        -- r = g = b = 0        -- s = 0, v is undefined
-        return 0, v, 0
+        return 0, 0, v
     end
     
-    if r == valMax then
-        h = ( g - b ) / delta       -- between yellow & magenta
-    elseif g == valMax then
-        h = 2 + ( b - r ) / delta   -- between cyan & yellow
+    if r >= valMax then                           -- > is bogus, just keeps compilor happy
+        h = (g - b) / delta        -- between yellow & magenta
+    elseif g >= valMax then
+        h = 2.0 + (b - r) / delta  -- between cyan & yellow
     else
-        h = 4 + ( r - g ) / delta   -- between magenta & cyan
-        h = h *60               -- degrees
+        h = 4.0 + (r - g) / delta  -- between magenta & cyan
     end
     
-    if h < 0 then
-        h = h + 360
+    h = h * 60.0  -- degrees
+
+    if h < 0.0 then
+        h = h + 360.0
     end
-    
+        
     return h, s, v
 end
 
 function HSVtoRGB(h, s, v)
-    if s == 0 then -- achromatic (grey)
+    local hh, p, q, t, ff
+    local i
+    local r, g, b
+
+    if s <= 0 then       -- < is bogus, just shuts up warnings
         return v, v, v
     end
-    
-    local r, g, b
-    local i
-    local f, p, q, t
-    
-    h = h / 60          -- sector 0 to 5
-    i = math.floor(h)
-    f = h - i           -- factorial part of h
-    p = v * ( 1 - s )
-    q = v * ( 1 - s * f )
-    t = v * ( 1 - s * ( 1 - f ) )
-    if i == 0 then
-        r = v
-        g = t
-        b = p
-    elseif i == 1 then
-        r = q
-        g = v
-        b = p
-    elseif i == 2 then
-        r = p
-        g = v
-        b = t
-    elseif i == 3 then
-        r = p
-        g = q
-        b = v
-    elseif i == 4 then
-        r = t
-        g = p
-        b = v
-    else
-        r = v
-        g = p
-        b = q
+    hh = h;
+    if hh >= 360 then
+        hh = 0
     end
     
-    return r, g, b
+    hh = hh / 60
+    i = floor(hh)
+    ff = hh - i
+    p = v * (1 - s)
+    q = v * (1 - (s * ff))
+    t = v * (1 - (s * (1 - ff)))
+
+    if i == 0 then
+        return v, t, p
+    elseif i == 1 then
+        return q, v, p
+    elseif i == 2 then
+        return p, v, t
+    elseif i == 3 then
+        return p, q, v
+    elseif i ==  4 then
+        return t, p, v
+    else
+        return v, p, q
+    end
 end
 
 function gameStates.intro:init()
@@ -243,35 +238,115 @@ function gameStates.createNewFlag:init()
         Gamestate.switch(gameStates.menu)
     end
     
-    self.hueSelector = TouchZone(280, 55, 12, 120)
-    self.hueSelector.hueSelectorCanvas = love.graphics.newCanvas(self.hueSelector.frame.size.x, self.hueSelector.frame.size.y)
-    love.graphics.setCanvas(self.hueSelector.hueSelectorCanvas)
-    local row
-    for row = 0, 120 do
-        local r, g, b = HSVtoRGB(row * 3, 1, 1)
-        love.graphics.setColor(r * 255, g * 255, b * 255, 255)
-        love.graphics.rectangle("fill", 0, row, self.hueSelector.frame.size.x, row + 1)
+    self.colorPicker = TouchZone(280, 55, 12, 120)
+    self.colorPicker.script = self
+    self.colorPicker.setColor = function(self, r, g, b)
+        self.hue, self.sat, self.val = RGBtoHSV(255, 0, 0)
     end
-    love.graphics.setCanvas()
-    self.hueSelector.draw = function(self)
+    self.colorPicker:setColor(255, 0, 0)
+    self.colorPicker.colorPickerHueCanvas = love.graphics.newCanvas(self.colorPicker.frame.size.x, self.colorPicker.frame.size.y)
+    self.colorPicker.colorPickerSatCanvas = love.graphics.newCanvas(self.colorPicker.frame.size.x, self.colorPicker.frame.size.y)
+    self.colorPicker.colorPickerValCanvas = love.graphics.newCanvas(self.colorPicker.frame.size.x, self.colorPicker.frame.size.y)
+    self.colorPicker.renderHueCanvas = function(self)
+        love.graphics.setCanvas(self.colorPickerHueCanvas)
+        local row
+        for row = 0, 120 do
+            local r, g, b = HSVtoRGB(row * 3, self.sat, self.val)
+            love.graphics.setColor(r, g, b, 255)
+            love.graphics.rectangle("fill", 0, row, self.frame.size.x, row + 1)
+        end
+        love.graphics.setCanvas()
+    end
+    self.colorPicker.renderSatCanvas = function(self)
+        love.graphics.setCanvas(self.colorPickerSatCanvas)
+        for row = 0, 120 do
+            local r, g, b = HSVtoRGB(self.hue, row*0.008333333, self.val)
+            love.graphics.setColor(r, g, b, 255)
+            love.graphics.rectangle("fill", 0, row, self.frame.size.x, row + 1)
+        end
+        love.graphics.setCanvas()
+    end
+    self.colorPicker.renderValCanvas = function(self)
+        love.graphics.setCanvas(self.colorPickerValCanvas)
+        for row = 0, 120 do
+            local r, g, b = HSVtoRGB(self.hue, self.sat, row*2.125)
+            love.graphics.setColor(r, g, b, 255)
+            love.graphics.rectangle("fill", 0, row, self.frame.size.x, row + 1)
+        end
+        love.graphics.setCanvas()
+    end
+    
+    self.colorPicker:renderHueCanvas()
+    self.colorPicker:renderSatCanvas()
+    self.colorPicker:renderValCanvas()
+    
+    self.colorPicker.draw = function(self)
         love.graphics.setColor(255, 255, 255, 255)
-        love.graphics.draw(self.hueSelectorCanvas, self.frame.origin.x, self.frame.origin.y)
+        local toolCanvas, cursor
+        if self.script.colorTool.tool == "H" then
+            toolCanvas = self.colorPickerHueCanvas
+            cursor = (self.hue / 3) + self.frame.origin.y
+        elseif self.script.colorTool.tool == "S" then
+            toolCanvas = self.colorPickerSatCanvas
+            cursor = (self.sat / 0.008333333) + self.frame.origin.y
+        elseif self.script.colorTool.tool == "V" then
+            toolCanvas = self.colorPickerValCanvas
+            cursor = (self.val / 2.125) + self.frame.origin.y
+        end
+        love.graphics.draw(toolCanvas, self.frame.origin.x, self.frame.origin.y)
         love.graphics.setColor(255, 255, 255, 128)
         love.graphics.rectangle("line", self.frame.origin.x + 0.5, self.frame.origin.y + 0.5, self.frame.size.x - 1, self.frame.size.y - 1)
+        love.graphics.rectangle("fill", self.frame.origin.x, floor(cursor) - 0.5, self.frame.size.x, 1)
+        love.graphics.setColor(0, 0, 0, 128)
+        love.graphics.rectangle("line", self.frame.origin.x - 0.5, floor(cursor) - 0.5, self.frame.size.x + 1, 2)
     end
-    self.hueSelector.onTouchUpInside = function(self, position)
-        print(position)
-        local hue = math.max(0, math.min(359, ((position.y - self.frame.origin.y) / self.frame.size.y) * 360))
-        local selectedRegion = self.baseRegion:getSelected()
-        if selectedRegion then
-            local r, g, b = HSVtoRGB(hue, 1, 1)
-            selectedRegion.color = {r * 255, g * 255, b * 255, 255}
+    self.colorPicker.onTouchUpInside = function(self, position)
+        local selectedRegion = self.script.baseRegion:getSelected()
+        if selectedRegion ~= nil then
+            if self.script.colorTool.tool == "H" then
+                self.hue = math.max(0, math.min(360, ((position.y - self.frame.origin.y) / self.frame.size.y) * 360))
+            elseif self.script.colorTool.tool == "S" then
+                self.sat = math.max(0, math.min(1, (position.y - self.frame.origin.y) / self.frame.size.y))
+            elseif self.script.colorTool.tool == "V" then
+                self.val = math.max(0, math.min(255, ((position.y - self.frame.origin.y) / self.frame.size.y) * 255))
+            end
+            
+            local r, g, b = HSVtoRGB(self.hue, self.sat, self.val)
+            selectedRegion.color = {r, g, b, 255}
         end
     end
-    self.hueSelector.onTouchMove = self.hueSelector.onTouchUpInside
+    self.colorPicker.onTouchMove = self.colorPicker.onTouchUpInside
+    
+    self.colorTool = TouchZone(278, 180, 16, 16)
+    self.colorTool.script = self
+    self.colorTool.tool = "H"
+    self.colorTool.draw = function(self)
+        if self.hit then
+            love.graphics.setColor(50, 50, 50, 128)
+        else
+            love.graphics.setColor(50, 50, 50, 255)
+        end
+        love.graphics.setFont(computerFontSmall)
+        love.graphics.setLineWidth(1)
+        love.graphics.print(self.tool, self.frame.origin.x + 5, self.frame.origin.y + 2)
+        love.graphics.rectangle("line", self.frame.origin.x + 0.5, self.frame.origin.y + 0.5, self.frame.size.x, self.frame.size.y)
+    end
+    self.colorTool.onTouchUpInside = function(self)
+        if self.tool == "H" then
+            self.tool = "S"
+        elseif self.tool == "S" then
+            self.tool = "V"
+        elseif self.tool == "V" then
+            self.tool = "H"
+        end
+        
+        self.script.colorPicker:renderHueCanvas()
+        self.script.colorPicker:renderSatCanvas()
+        self.script.colorPicker:renderValCanvas()
+    end
     
     self.baseRegion = TouchZone(60, 55, 200, 120)
-    self.hueSelector.baseRegion = self.baseRegion
+    self.baseRegion.script = self
     self.baseRegion.selected = false
     self.baseRegion.color = {255, 0, 0, 255}
     self.baseRegion.getSelected = function(self)
@@ -287,24 +362,38 @@ function gameStates.createNewFlag:init()
         return nil
     end
     self.baseRegion.draw = function(self)
-        love.graphics.setColor(unpack(self.color))
-        love.graphics.rectangle("fill", self.frame.origin.x, self.frame.origin.y, self.frame.size.x, self.frame.size.y)
-        if self.selected and elapsedTime % 1.5 < 0.5 then
-            if elapsedTime % 1.5 < 0.25 then
-                love.graphics.setColor(255, 255, 255, 64)
-            else
-                love.graphics.setColor(0, 0, 0, 64)
-            end
+        if #self.children > 0 then -- draw children
+            
+        else -- draw self
+            love.graphics.setColor(unpack(self.color))
             love.graphics.rectangle("fill", self.frame.origin.x, self.frame.origin.y, self.frame.size.x, self.frame.size.y)
+            if self.selected and elapsedTime % 1.5 < 0.5 then
+                if elapsedTime % 1.5 < 0.25 then
+                    love.graphics.setColor(255, 255, 255, 64)
+                else
+                    love.graphics.setColor(0, 0, 0, 64)
+                end
+                love.graphics.rectangle("fill", self.frame.origin.x, self.frame.origin.y, self.frame.size.x, self.frame.size.y)
+            end
         end
     end
     self.baseRegion.onTouchUpInside = function(self)
         self.selected = not self.selected
+        if self.selected then
+            local r, g, b, a = unpack(self.color)
+            self.script.colorPicker:setColor(r, g, b)
+        end
     end
     
     table.insert(self.rootTouchZones, self.backButton)
     table.insert(self.rootTouchZones, self.baseRegion)
-    table.insert(self.rootTouchZones, self.hueSelector)
+    table.insert(self.rootTouchZones, self.colorPicker)
+    table.insert(self.rootTouchZones, self.colorTool)
+end
+
+function gameStates.createNewFlag:enter()
+    self.baseRegion.color = {255, 0, 0, 255}
+    self.baseRegion.selected = false
 end
 
 function gameStates.createNewFlag:update()
@@ -321,7 +410,11 @@ function gameStates.createNewFlag:draw()
     love.graphics.setColor(20, 20, 20, 240)
     self.backButton:draw()
     self.baseRegion:draw()
-    self.hueSelector:draw()
+    local selectedRegion = self.baseRegion:getSelected()
+    if selectedRegion ~= nil then
+        self.colorPicker:draw()
+        self.colorTool:draw()
+    end
     
     -- the mouse
     love.graphics.setColor(0, 0, 0, 180)
@@ -404,13 +497,13 @@ end
 
 function love.draw()
     sceneCamera:attach()
-    --love.graphics.setShader(mainShader)
+    love.graphics.setShader(mainShader)
     love.graphics.setColor(15, 30, 15, 255)
     love.graphics.rectangle("fill", unpack(backgroundSize))
     love.graphics.setColor(255, 255, 255, 255)
     love.graphics.draw(mainCanvas)
     
-    --love.graphics.setShader()
+    love.graphics.setShader()
     sceneCamera:detach()
 end
 
