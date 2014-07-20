@@ -7,6 +7,15 @@ local TouchZone = require "touchZone"
 
 local min, max, floor = math.min, math.max, math.floor
 
+function printHierarchy(root, topLevel)
+    local level = topLevel or ""
+    level = level.."    "
+    print(level..tostring(root))
+    for _, child in ipairs(root.children) do
+        printHierarchy(child, level)
+    end
+end
+
 local designResolution = {x = 320, y = 240}
 local backgroundSize = {0, 0, designResolution.x, designResolution.y}
 local mainShader = nil
@@ -99,24 +108,17 @@ function HSVtoRGB(h, s, v)
 end
 
 function gameStates.intro:init()
-    self.textString = [[Mounting file system...
-Loading boot routine...
-Configuring kernel parameters...
-Hardware check:
-* HDD
-* RAM
-
-Input methods:
-* keyboard - OK
-* mouse - OK
-
+    self.textString = [[user@love: session started
+>flagmaker
+Welcome to flag maker #2.0
+Program made by (c)Crazyrems
 loading GUI]]
     self.currentTextDisplay = ""
     Timer.addPeriodic(0.012, function()
         self.currentTextDisplay = self.textString:sub(1, self.currentTextDisplay:len() + 1)
     end, self.textString:len())
     
-    Timer.add(5, function() Gamestate.switch(gameStates.menu) end)
+    Timer.add(5.12, function() Gamestate.switch(gameStates.menu) end)
 end
 
 function gameStates.intro:draw()
@@ -243,9 +245,15 @@ function gameStates.createNewFlag:init()
     self.colorPicker = TouchZone(280, 55, 12, 120)
     self.colorPicker.script = self
     self.colorPicker.setColor = function(self, r, g, b)
-        self.hue, self.sat, self.val = RGBtoHSV(255, 0, 0)
+        self.hue, self.sat, self.val = RGBtoHSV(r, g, b)
+        if self.script.colorTool.tool == "H" then
+            self:renderHueCanvas()
+        elseif self.script.colorTool.tool == "S" then
+            self:renderSatCanvas()
+        elseif self.script.colorTool.tool == "V" then
+            self:renderValCanvas()
+        end
     end
-    self.colorPicker:setColor(255, 0, 0)
     self.colorPicker.colorPickerHueCanvas = love.graphics.newCanvas(self.colorPicker.frame.size.x, self.colorPicker.frame.size.y)
     self.colorPicker.colorPickerSatCanvas = love.graphics.newCanvas(self.colorPicker.frame.size.x, self.colorPicker.frame.size.y)
     self.colorPicker.colorPickerValCanvas = love.graphics.newCanvas(self.colorPicker.frame.size.x, self.colorPicker.frame.size.y)
@@ -277,10 +285,6 @@ function gameStates.createNewFlag:init()
         end
         love.graphics.setCanvas()
     end
-    
-    self.colorPicker:renderHueCanvas()
-    self.colorPicker:renderSatCanvas()
-    self.colorPicker:renderValCanvas()
     
     self.colorPicker.draw = function(self)
         love.graphics.setColor(255, 255, 255, 255)
@@ -347,55 +351,183 @@ function gameStates.createNewFlag:init()
         self.script.colorPicker:renderValCanvas()
     end
     
+    self.splitHorizontalButton = TouchZone(60, 190, 22, 16)
+    self.splitHorizontalButton.script = self
+    self.splitHorizontalButton.draw = function(self)
+        if self.hit then
+            love.graphics.setColor(50, 50, 50, 128)
+        else
+            love.graphics.setColor(50, 50, 50, 255)
+        end
+        love.graphics.setLineWidth(1)
+        love.graphics.rectangle("line", self.frame.origin.x + 0.5, self.frame.origin.y + 0.5, self.frame.size.x, self.frame.size.y)
+        love.graphics.rectangle("fill", self.frame.origin.x + 2, self.frame.origin.y + 2, (self.frame.size.x / 2) - 2 , self.frame.size.y - 3)
+        love.graphics.rectangle("fill", self.frame.origin.x + 1 + (self.frame.size.x / 2), self.frame.origin.y + 2, (self.frame.size.x / 2) - 2 , self.frame.size.y - 3)
+    end
+    self.splitHorizontalButton.onTouchUpInside = function (self)
+        local selectedRegion = self.script.baseRegion:getSelected()
+        if selectedRegion ~= nil then
+            local childLeft, childRight = selectedRegion:splitHorizontal()
+            --printHierarchy(self.script.baseRegion)
+            childLeft.splitHorizontal = selectedRegion.splitHorizontal
+            childRight.splitHorizontal = selectedRegion.splitHorizontal
+            childLeft.splitVertical = selectedRegion.splitVertical
+            childRight.splitVertical = selectedRegion.splitVertical
+        end
+    end
+    
+    self.splitVerticalButton = TouchZone(90, 190, 22, 16)
+    self.splitVerticalButton.script = self
+    self.splitVerticalButton.draw = function(self)
+        if self.hit then
+            love.graphics.setColor(50, 50, 50, 128)
+        else
+            love.graphics.setColor(50, 50, 50, 255)
+        end
+        love.graphics.setLineWidth(1)
+        love.graphics.rectangle("line", self.frame.origin.x + 0.5, self.frame.origin.y + 0.5, self.frame.size.x, self.frame.size.y)
+        love.graphics.rectangle("fill", self.frame.origin.x + 2, self.frame.origin.y + 2, self.frame.size.x - 3, (self.frame.size.y / 2) - 2)
+        love.graphics.rectangle("fill", self.frame.origin.x + 2, self.frame.origin.y + 1 + (self.frame.size.y / 2), self.frame.size.x - 3, (self.frame.size.y / 2) - 2)
+    end
+    self.splitVerticalButton.onTouchUpInside = function (self)
+        local selectedRegion = self.script.baseRegion:getSelected()
+        if selectedRegion ~= nil then
+            local childTop, childBottom = selectedRegion:splitVertical()
+            --printHierarchy(self.script.baseRegion)
+            childTop.splitHorizontal = selectedRegion.splitHorizontal
+            childBottom.splitHorizontal = selectedRegion.splitHorizontal
+            childTop.splitVertical = selectedRegion.splitVertical
+            childBottom.splitVertical = selectedRegion.splitVertical
+        end
+    end
+    
+    self.colorPicker:setColor(255, 0, 0) --base init
+    
     self.baseRegion = TouchZone(60, 55, 200, 120)
     self.baseRegion.script = self
+    self.children = {}
     self.baseRegion.selected = false
     self.baseRegion.color = {255, 0, 0, 255}
     self.baseRegion.getSelected = function(self)
-        if self.selected == true then
-            return self
-        end
         for _, child in ipairs(self.children) do
             local childSelected = child:getSelected()
             if childSelected ~= nil then
                 return childSelected
             end
         end
+        if #self.children == 0 and self.selected == true then
+            return self
+        end
         return nil
     end
     self.baseRegion.draw = function(self)
         if #self.children > 0 then -- draw children
-            
+            local child
+            for _, child in ipairs(self.children) do
+                child:draw()
+            end
         else -- draw self
             love.graphics.setColor(unpack(self.color))
             love.graphics.rectangle("fill", self.frame.origin.x, self.frame.origin.y, self.frame.size.x, self.frame.size.y)
-            if self.selected and elapsedTime % 1.5 < 0.5 then
-                if elapsedTime % 1.5 < 0.25 then
-                    love.graphics.setColor(255, 255, 255, 64)
-                else
-                    love.graphics.setColor(0, 0, 0, 64)
-                end
-                love.graphics.rectangle("fill", self.frame.origin.x, self.frame.origin.y, self.frame.size.x, self.frame.size.y)
+            if self.selected and elapsedTime % 1 < 0.5 then
+                love.graphics.setColor(255, 255, 255, 128)
+            elseif self.selected then
+                love.graphics.setColor(0, 0, 0, 128)
             end
+            love.graphics.rectangle("line", self.frame.origin.x + 0.5, self.frame.origin.y + 0.5, self.frame.size.x - 1, self.frame.size.y - 1)
         end
     end
     self.baseRegion.onTouchUpInside = function(self)
-        self.selected = not self.selected
+        ---[[
+        local previousSelected = self.script.baseRegion:getSelected()
+        if previousSelected then
+            previousSelected.selected = false
+        end
+        if previousSelected ~= self then
+            self.selected = not self.selected
+        end
+        --]]
         if self.selected then
             local r, g, b, a = unpack(self.color)
             self.script.colorPicker:setColor(r, g, b)
         end
+    end
+    self.baseRegion.splitHorizontal = function(self)
+        local childLeft, childRight
+        childLeft = TouchZone(self.frame.origin.x, self.frame.origin.y, self.frame.size.x / 2, self.frame.size.y)
+        childLeft.script = self.script
+        childLeft.children = {}
+        childLeft.selected = true
+        childLeft.color = self.color
+        childLeft.getSelected = self.script.baseRegion.getSelected
+        childLeft.draw = self.script.baseRegion.draw
+        childLeft.onTouchUpInside = self.script.baseRegion.onTouchUpInside
+        ----
+        childRight = TouchZone(self.frame.origin.x + self.frame.size.x / 2, self.frame.origin.y, self.frame.size.x / 2, self.frame.size.y)
+        childRight.script = self.script
+        childRight.children = {}
+        childRight.selected = false
+        childRight.color = self.color
+        childRight.getSelected = self.script.baseRegion.getSelected
+        childRight.draw = self.script.baseRegion.draw
+        childRight.onTouchUpInside = self.script.baseRegion.onTouchUpInside
+        
+        self:addChild(childLeft)
+        self:addChild(childRight)
+        
+        return childLeft, childRight
+    end
+    self.baseRegion.splitVertical = function(self)
+        local childTop, childBottom
+        childTop = TouchZone(self.frame.origin.x, self.frame.origin.y, self.frame.size.x, self.frame.size.y / 2)
+        childTop.script = self.script
+        childTop.children = {}
+        childTop.selected = true
+        childTop.color = self.color
+        childTop.getSelected = self.script.baseRegion.getSelected
+        childTop.draw = self.script.baseRegion.draw
+        childTop.onTouchUpInside = self.script.baseRegion.onTouchUpInside
+        ----
+        childBottom = TouchZone(self.frame.origin.x, self.frame.origin.y + self.frame.size.y / 2, self.frame.size.x, self.frame.size.y / 2)
+        childBottom.script = self.script
+        childBottom.children = {}
+        childBottom.selected = false
+        childBottom.color = self.color
+        childBottom.getSelected = self.script.baseRegion.getSelected
+        childBottom.draw = self.script.baseRegion.draw
+        childBottom.onTouchUpInside = self.script.baseRegion.onTouchUpInside
+        
+        self:addChild(childTop)
+        self:addChild(childBottom)
+        
+        return childTop, childBottom
+    end
+    
+    self.unfocus = TouchZone(0, 0, designResolution.x, designResolution.y)
+    self.unfocus.script = self
+    self.unfocus.onTouchUpInside = function(self)
+        local selection = self.script.baseRegion:getSelected()
+        if selection then selection.selected = false end
     end
     
     table.insert(self.rootTouchZones, self.backButton)
     table.insert(self.rootTouchZones, self.baseRegion)
     table.insert(self.rootTouchZones, self.colorPicker)
     table.insert(self.rootTouchZones, self.colorTool)
+    table.insert(self.rootTouchZones, self.splitHorizontalButton)
+    table.insert(self.rootTouchZones, self.splitVerticalButton)
+    
+    table.insert(self.rootTouchZones, self.unfocus)
 end
 
 function gameStates.createNewFlag:enter()
     self.baseRegion.color = {255, 0, 0, 255}
     self.baseRegion.selected = false
+    self.baseRegion.children = {}
+    
+    self.colorPicker:renderHueCanvas()
+    self.colorPicker:renderSatCanvas()
+    self.colorPicker:renderValCanvas()
 end
 
 function gameStates.createNewFlag:update()
@@ -413,11 +545,14 @@ function gameStates.createNewFlag:draw()
     love.graphics.setFont(computerFont)
     love.graphics.setColor(20, 20, 20, 240)
     self.backButton:draw()
+    love.graphics.rectangle("line", self.baseRegion.frame.origin.x - 0.5, self.baseRegion.frame.origin.y - 0.5, self.baseRegion.frame.size.x + 1, self.baseRegion.frame.size.y + 1)
     self.baseRegion:draw()
     local selectedRegion = self.baseRegion:getSelected()
     if selectedRegion ~= nil then
         self.colorPicker:draw()
         self.colorTool:draw()
+        self.splitHorizontalButton:draw()
+        self.splitVerticalButton:draw()
     end
     
     -- the mouse
@@ -457,7 +592,7 @@ end
 
 function love.load()
     Gamestate.registerEvents()
-    Gamestate.switch(gameStates.menu)
+    Gamestate.switch(gameStates.intro)
     --modes = love.window.getFullscreenModes()
     --table.sort(modes, function(a, b) return a.width * a.height < b.width * b.height end)
     love.window.setMode(designResolution.x * 2, designResolution.y * 2, {resizable = true, fullscreen = false, minwidth = designResolution.x, minheight = designResolution.y})

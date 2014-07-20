@@ -16,7 +16,7 @@ function touchZone:touchInside(v)
     if justHit then
         for _, child in ipairs(self.children) do
             local childHit = child:touchInside(v)
-            if childHit then return child end
+            if childHit then return childHit end
         end
         return self
     end
@@ -34,8 +34,9 @@ end
 function touchZone:onTouchMove(position, delta) end
 
 function touchZone:onTouchUp(position)
-    if self.hit and self:touchInside(position) then
-        self:onTouchUpInside(position)
+    local elementTouched = self:touchInside(position)
+    if self.hit and elementTouched then
+        elementTouched:onTouchUpInside(position)
     end
     self.hit = false
 end
