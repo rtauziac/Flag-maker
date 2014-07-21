@@ -359,7 +359,6 @@ function gameStates.createNewFlag:init()
     
     self.colorToBufferButton = TouchZone(278, 200, 16, 16)
     self.colorToBufferButton.script = self
-    self.colorToBufferButton.color = {0, 0, 0, 255}
     self.colorToBufferButton.draw = function(self)
         if self.hit then
             love.graphics.setColor(50, 50, 50, 128)
@@ -369,6 +368,44 @@ function gameStates.createNewFlag:init()
         love.graphics.setFont(computerFontSmall)
         love.graphics.setLineWidth(1)
         love.graphics.rectangle("line", self.frame.origin.x + 0.5, self.frame.origin.y + 0.5, self.frame.size.x, self.frame.size.y)
+        love.graphics.setFont(computerFontSmall)
+        love.graphics.print("<", self.frame.origin.x + 5, self.frame.origin.y + 2)
+    end
+    self.colorToBufferButton.onTouchUpInside = function(self)
+        local r, g, b, a = unpack(self.script.colorPicker:getColor())
+        self.script.colorBufferButton:setColor(r, g, b)
+    end
+    
+    self.colorBufferButton = TouchZone(258, 200, 16, 16)
+    self.colorBufferButton.script = self
+    self.colorBufferButton.color = nil
+    self.colorBufferButton.draw = function(self)
+        local transparent
+        if self.hit then
+            transparent = 128
+        else
+            transparent = 255
+        end
+        love.graphics.setColor(50, 50, 50, transparent)
+        love.graphics.setFont(computerFontSmall)
+        love.graphics.setLineWidth(1)
+        love.graphics.rectangle("line", self.frame.origin.x + 0.5, self.frame.origin.y + 0.5, self.frame.size.x, self.frame.size.y)
+        if self.color then
+            local r, g, b, a = unpack(self.color)
+            love.graphics.setColor(r, g, b, transparent)
+            love.graphics.rectangle("fill", self.frame.origin.x + 2, self.frame.origin.y + 2, self.frame.size.x - 3, self.frame.size.y - 3)
+        end
+    end
+    self.colorBufferButton.setColor = function(self, r, g, b)
+        self.color = {r, g, b, 255}
+    end
+    self.colorBufferButton.onTouchUpInside = function(self)
+        local selectedRegion = self.script.baseRegion:getSelected()
+        if selectedRegion ~= nil and self.color ~= nil then
+            selectedRegion.color = self.color
+            local r, g, b, a = unpack(self.color)
+            self.script.colorPicker:setColor(r, g, b)
+        end
     end
     
     self.splitHorizontalButton = TouchZone(60, 190, 22, 16)
@@ -535,6 +572,7 @@ function gameStates.createNewFlag:init()
     table.insert(self.rootTouchZones, self.splitHorizontalButton)
     table.insert(self.rootTouchZones, self.splitVerticalButton)
     table.insert(self.rootTouchZones, self.colorToBufferButton)
+    table.insert(self.rootTouchZones, self.colorBufferButton)
     
     table.insert(self.rootTouchZones, self.unfocus)
 end
@@ -570,7 +608,8 @@ function gameStates.createNewFlag:draw()
     if selectedRegion ~= nil then
         self.colorPicker:draw()
         self.colorTool:draw()
-	self.colorToBufferButton:draw()
+        self.colorToBufferButton:draw()
+        self.colorBufferButton:draw()
         self.splitHorizontalButton:draw()
         self.splitVerticalButton:draw()
     end
