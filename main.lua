@@ -153,7 +153,7 @@ function gameStates.menu:init()
         love.graphics.rectangle("line", self.frame.origin.x + 0.5, self.frame.origin.y + 0.5, self.frame.size.x, self.frame.size.y)
     end
     self.createFlagButton.onTouchUpInside = function(self, position, delta)
-        Gamestate.switch(gameStates.createNewFlag)
+        Gamestate.push(gameStates.createNewFlag)
     end
     
     self.quitButton = TouchZone(15, 55, 24, 15)
@@ -242,7 +242,7 @@ function gameStates.createNewFlag:init()
     end
     
     self.backButton.onTouchUpInside = function(self, position, delta)
-        Gamestate.switch(gameStates.menu)
+        Gamestate.pop()
     end
     
     self.colorPicker = TouchZone(280, 55, 12, 120)
@@ -289,6 +289,10 @@ function gameStates.createNewFlag:init()
         love.graphics.setCanvas()
     end
     
+    self.colorPicker.getColor = function(self)
+        local r, g, b = HSVtoRGB(self.hue, self.sat, self.val)
+        return {r, g, b, 255}
+    end
     self.colorPicker.draw = function(self)
         love.graphics.setColor(255, 255, 255, 255)
         local toolCanvas, cursor
@@ -320,8 +324,7 @@ function gameStates.createNewFlag:init()
                 self.val = math.max(0, math.min(255, ((position.y - self.frame.origin.y) / self.frame.size.y) * 255))
             end
             
-            local r, g, b = HSVtoRGB(self.hue, self.sat, self.val)
-            selectedRegion.color = {r, g, b, 255}
+            selectedRegion.color = self:getColor()
         end
     end
     self.colorPicker.onTouchMove = self.colorPicker.onTouchUpInside
@@ -352,6 +355,20 @@ function gameStates.createNewFlag:init()
         self.script.colorPicker:renderHueCanvas()
         self.script.colorPicker:renderSatCanvas()
         self.script.colorPicker:renderValCanvas()
+    end
+    
+    self.colorToBufferButton = TouchZone(278, 200, 16, 16)
+    self.colorToBufferButton.script = self
+    self.colorToBufferButton.color = {0, 0, 0, 255}
+    self.colorToBufferButton.draw = function(self)
+        if self.hit then
+            love.graphics.setColor(50, 50, 50, 128)
+        else
+            love.graphics.setColor(50, 50, 50, 255)
+        end
+        love.graphics.setFont(computerFontSmall)
+        love.graphics.setLineWidth(1)
+        love.graphics.rectangle("line", self.frame.origin.x + 0.5, self.frame.origin.y + 0.5, self.frame.size.x, self.frame.size.y)
     end
     
     self.splitHorizontalButton = TouchZone(60, 190, 22, 16)
@@ -441,7 +458,6 @@ function gameStates.createNewFlag:init()
         end
     end
     self.baseRegion.onTouchUpInside = function(self)
-        ---[[
         local previousSelected = self.script.baseRegion:getSelected()
         if previousSelected then
             previousSelected.selected = false
@@ -449,7 +465,6 @@ function gameStates.createNewFlag:init()
         if previousSelected ~= self then
             self.selected = not self.selected
         end
-        --]]
         if self.selected then
             local r, g, b, a = unpack(self.color)
             self.script.colorPicker:setColor(r, g, b)
@@ -519,6 +534,7 @@ function gameStates.createNewFlag:init()
     table.insert(self.rootTouchZones, self.colorTool)
     table.insert(self.rootTouchZones, self.splitHorizontalButton)
     table.insert(self.rootTouchZones, self.splitVerticalButton)
+    table.insert(self.rootTouchZones, self.colorToBufferButton)
     
     table.insert(self.rootTouchZones, self.unfocus)
 end
@@ -554,6 +570,7 @@ function gameStates.createNewFlag:draw()
     if selectedRegion ~= nil then
         self.colorPicker:draw()
         self.colorTool:draw()
+	self.colorToBufferButton:draw()
         self.splitHorizontalButton:draw()
         self.splitVerticalButton:draw()
     end
@@ -595,7 +612,7 @@ end
 
 function love.load()
     Gamestate.registerEvents()
-    Gamestate.switch(gameStates.intro)
+    Gamestate.switch(gameStates.menu)
     --modes = love.window.getFullscreenModes()
     --table.sort(modes, function(a, b) return a.width * a.height < b.width * b.height end)
     love.window.setMode(designResolution.x * 2, designResolution.y * 2, {resizable = true, fullscreen = false, minwidth = designResolution.x, minheight = designResolution.y})
