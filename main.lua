@@ -41,6 +41,9 @@ local gameStates = {
 }
 
 function RGBtoHSV(r, g, b)
+    if r >= 255 and g >= 255 and b >= 255 then
+        return 0, 0, 255
+    end
     local valMin, valMax, delta
     local h, s, v
     
@@ -68,7 +71,7 @@ function RGBtoHSV(r, g, b)
     if h < 0.0 then
         h = h + 360.0
     end
-        
+    
     return h, s, v
 end
 
