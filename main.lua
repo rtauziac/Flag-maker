@@ -1,3 +1,4 @@
+--local Class = require "hump.class"
 local Gamestate = require "hump.gamestate"
 local Camera = require "hump.camera"
 local Vector2 = require "hump.vector"
@@ -228,6 +229,30 @@ end
 function gameStates.createNewFlag:init()
     self.rootTouchZones = {}
     
+    --[[
+    function restoreTouchInside(element)
+        element.touchInside = TouchZone.touchInside
+        print("restored !")
+        for _, child in ipairs(element.children) do
+            restoreTouchInside(child)
+        end
+    end
+    
+    self.undoHistory = {}
+    self.currentHistoryState = 0
+    self.pushHistoryState = function(self, data)
+        table.insert(self.undoHistory, Class.clone(self.baseRegion))
+    end
+    self.popHistoryState = function(self, data)
+        local popedState = self.undoHistory[#self.undoHistory - 1]
+        table.remove(self.undoHistory)
+        table.remove(self.unfocus.children)
+        self.unfocus:addChild(popedState)
+        restoreTouchInside(popedState)
+        self.baseRegion = popedState
+    end
+    --]]
+    
     self.backButton = TouchZone(15, 15, 25, 15)
     self.backButton.draw = function(self)
         if self.hit then
@@ -240,7 +265,6 @@ function gameStates.createNewFlag:init()
         love.graphics.print("back", self.frame.origin.x + 2, self.frame.origin.y + 2)
         love.graphics.rectangle("line", self.frame.origin.x + 0.5, self.frame.origin.y + 0.5, self.frame.size.x, self.frame.size.y)
     end
-    
     self.backButton.onTouchUpInside = function(self, position, delta)
         Gamestate.pop()
     end
@@ -313,7 +337,7 @@ function gameStates.createNewFlag:init()
         love.graphics.setColor(0, 0, 0, 128)
         love.graphics.rectangle("line", self.frame.origin.x - 0.5, floor(cursor) - 0.5, self.frame.size.x + 1, 2)
     end
-    self.colorPicker.onTouchUpInside = function(self, position)
+    self.colorPicker.applyColor = function(self, position)
         local selectedRegion = self.script.baseRegion:getSelected()
         if selectedRegion ~= nil then
             if self.script.colorTool.tool == "H" then
@@ -327,7 +351,13 @@ function gameStates.createNewFlag:init()
             selectedRegion.color = self:getColor()
         end
     end
-    self.colorPicker.onTouchMove = self.colorPicker.onTouchUpInside
+    self.colorPicker.onTouchUpInside = function(self, position)
+        --self.script:pushHistoryState()
+        self:applyColor(position)
+    end
+    self.colorPicker.onTouchMove = function(self, position)
+        self:applyColor(position)
+    end
     
     self.colorTool = TouchZone(278, 180, 16, 16)
     self.colorTool.script = self
@@ -424,8 +454,9 @@ function gameStates.createNewFlag:init()
     self.splitHorizontalButton.onTouchUpInside = function (self)
         local selectedRegion = self.script.baseRegion:getSelected()
         if selectedRegion ~= nil then
+            --self.script:pushHistoryState()
+            
             local childLeft, childRight = selectedRegion:splitHorizontal()
-            --printHierarchy(self.script.baseRegion)
             childLeft.splitHorizontal = selectedRegion.splitHorizontal
             childRight.splitHorizontal = selectedRegion.splitHorizontal
             childLeft.splitVertical = selectedRegion.splitVertical
@@ -449,8 +480,8 @@ function gameStates.createNewFlag:init()
     self.splitVerticalButton.onTouchUpInside = function (self)
         local selectedRegion = self.script.baseRegion:getSelected()
         if selectedRegion ~= nil then
+            --self.script:pushHistoryState()
             local childTop, childBottom = selectedRegion:splitVertical()
-            --printHierarchy(self.script.baseRegion)
             childTop.splitHorizontal = selectedRegion.splitHorizontal
             childBottom.splitHorizontal = selectedRegion.splitHorizontal
             childTop.splitVertical = selectedRegion.splitVertical
@@ -517,6 +548,7 @@ function gameStates.createNewFlag:init()
         childLeft.getSelected = self.script.baseRegion.getSelected
         childLeft.draw = self.script.baseRegion.draw
         childLeft.onTouchUpInside = self.script.baseRegion.onTouchUpInside
+        childLeft.toFileString = self.script.baseRegion.toFileString
         ----
         childRight = TouchZone(self.frame.origin.x + self.frame.size.x / 2, self.frame.origin.y, self.frame.size.x / 2, self.frame.size.y)
         childRight.script = self.script
@@ -526,6 +558,7 @@ function gameStates.createNewFlag:init()
         childRight.getSelected = self.script.baseRegion.getSelected
         childRight.draw = self.script.baseRegion.draw
         childRight.onTouchUpInside = self.script.baseRegion.onTouchUpInside
+        childRight.toFileString = self.script.baseRegion.toFileString
         
         self:addChild(childLeft)
         self:addChild(childRight)
@@ -542,6 +575,7 @@ function gameStates.createNewFlag:init()
         childTop.getSelected = self.script.baseRegion.getSelected
         childTop.draw = self.script.baseRegion.draw
         childTop.onTouchUpInside = self.script.baseRegion.onTouchUpInside
+        childTop.toFileString = self.script.baseRegion.toFileString
         ----
         childBottom = TouchZone(self.frame.origin.x, self.frame.origin.y + self.frame.size.y / 2, self.frame.size.x, self.frame.size.y / 2)
         childBottom.script = self.script
@@ -551,11 +585,82 @@ function gameStates.createNewFlag:init()
         childBottom.getSelected = self.script.baseRegion.getSelected
         childBottom.draw = self.script.baseRegion.draw
         childBottom.onTouchUpInside = self.script.baseRegion.onTouchUpInside
+        childBottom.toFileString = self.script.baseRegion.toFileString
         
         self:addChild(childTop)
         self:addChild(childBottom)
         
         return childTop, childBottom
+    end
+    self.baseRegion.toFileString = function(self)
+        if #self.children == 0 then
+            return self.frame.origin.x.." "..self.frame.origin.y.." "..self.frame.size.x.." "..self.frame.size.y.." "..self.color[1].." "..self.color[2].." "..self.color[3].."\r\n"
+        else
+            local theString = ""
+            for _, child in ipairs(self.children) do
+                theString = theString..child:toFileString()
+            end
+            return theString
+        end
+    end
+    --[[
+    self.baseRegion.createTree = function(self)
+        tree = {}
+        
+        if #self.children > 0 then
+            tree.children = {}
+            for _, child in ipairs(self.children) do
+                table.insert(tree.children, child:createTree())
+            end
+        end
+        tree.frame = self.frame
+        tree.color = self.color
+        tree.selected = self.selected
+        
+        return tree
+    end
+    
+    self.recreateTree = function(tree)
+        local region = TouchZone(tree.frame.origin.x, tree.frame.origin.y, tree.frame.size.x, tree.frame.size.y)
+        region
+    end
+    --]]
+    
+    --[[
+    self.undoButton = TouchZone(28, 54, 22, 16)
+    self.undoButton.script = self
+    self.undoButton.onTouchUpInside = function(self, position)
+        if #self.script.undoHistory > 1 then
+            self.script:popHistoryState()
+        end
+    end
+    self.undoButton.draw = function(self)
+        if #self.script.undoHistory > 1 and self.hit then
+            love.graphics.setColor(50, 50, 50, 128)
+        else
+            love.graphics.setColor(50, 50, 50, 255)
+        end
+        love.graphics.setLineWidth(1)
+        if #self.script.undoHistory > 1 then
+            love.graphics.rectangle("line", self.frame.origin.x + 0.5, self.frame.origin.y + 0.5, self.frame.size.x, self.frame.size.y)
+        end
+        love.graphics.print("<-", self.frame.origin.x + 5, self.frame.origin.y + 3)
+    end
+    --]]
+    
+    self.saveFlag = function(self)
+        local baseName = "flag"
+        local extention = ".flag"
+        local fileName = baseName..extention
+        local index = 0
+        while love.filesystem.exists(fileName) do
+            index = index + 1
+            fileName = baseName..index..extention
+        end
+        local file = love.filesystem.newFile(fileName, "w")
+        if file then
+            file:write(self.baseRegion:toFileString())
+        end
     end
     
     self.unfocus = TouchZone(0, 0, designResolution.x, designResolution.y)
@@ -565,16 +670,38 @@ function gameStates.createNewFlag:init()
         if selection then selection.selected = false end
     end
     
+    self.saveButton = TouchZone(15, 35, 25, 15)
+    self.saveButton.script = self
+    self.saveButton.draw = function(self)
+        if self.hit then
+            love.graphics.setColor(50, 50, 50, 128)
+        else
+            love.graphics.setColor(50, 50, 50, 255)
+        end
+        love.graphics.setFont(computerFontSmall)
+        love.graphics.setLineWidth(1)
+        love.graphics.print("save", self.frame.origin.x + 2, self.frame.origin.y + 2)
+        love.graphics.rectangle("line", self.frame.origin.x + 0.5, self.frame.origin.y + 0.5, self.frame.size.x, self.frame.size.y)
+    end
+    self.saveButton.onTouchUpInside = function(self, position, delta)
+        self.script:saveFlag()
+        Gamestate.pop()
+    end
+    
     table.insert(self.rootTouchZones, self.backButton)
-    table.insert(self.rootTouchZones, self.baseRegion)
+    --table.insert(self.rootTouchZones, self.undoButton)
     table.insert(self.rootTouchZones, self.colorPicker)
     table.insert(self.rootTouchZones, self.colorTool)
     table.insert(self.rootTouchZones, self.splitHorizontalButton)
     table.insert(self.rootTouchZones, self.splitVerticalButton)
     table.insert(self.rootTouchZones, self.colorToBufferButton)
     table.insert(self.rootTouchZones, self.colorBufferButton)
+    table.insert(self.rootTouchZones, self.saveButton)
     
     table.insert(self.rootTouchZones, self.unfocus)
+    self.unfocus:addChild(self.baseRegion)
+    
+    --self:pushHistoryState()
 end
 
 function gameStates.createNewFlag:enter()
@@ -613,6 +740,8 @@ function gameStates.createNewFlag:draw()
         self.splitHorizontalButton:draw()
         self.splitVerticalButton:draw()
     end
+    self.saveButton:draw()
+    --self.undoButton:draw()
     
     -- the mouse
     love.graphics.setColor(0, 0, 0, 180)
