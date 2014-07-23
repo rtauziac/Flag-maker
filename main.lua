@@ -157,7 +157,23 @@ function gameStates.menu:init()
         Gamestate.push(gameStates.createNewFlag)
     end
     
-    self.quitButton = TouchZone(15, 55, 24, 15)
+    self.galleryButton = TouchZone(15, 55, 40, 15)
+    self.galleryButton.draw = function(self)
+        if self.hit then
+            love.graphics.setColor(50, 50, 50, 128)
+        else
+            love.graphics.setColor(50, 50, 50, 255)
+        end
+        love.graphics.setFont(computerFontSmall)
+        love.graphics.setLineWidth(1)
+        love.graphics.print("Gallery", self.frame.origin.x + 2, self.frame.origin.y + 2)
+        love.graphics.rectangle("line", self.frame.origin.x + 0.5, self.frame.origin.y + 0.5, self.frame.size.x, self.frame.size.y)
+    end
+    self.galleryButton.onTouchUpInside = function(self)
+        --love.event.quit()
+    end
+    
+    self.quitButton = TouchZone(15, 75, 24, 15)
     self.quitButton.draw = function(self)
         if self.hit then
             love.graphics.setColor(50, 50, 50, 128)
@@ -174,6 +190,7 @@ function gameStates.menu:init()
     end
     
     table.insert(self.rootTouchZones, self.createFlagButton)
+    table.insert(self.rootTouchZones, self.galleryButton)
     table.insert(self.rootTouchZones, self.quitButton)
 end
 
@@ -214,7 +231,9 @@ function gameStates.menu:draw()
     love.graphics.setFont(computerFont)
     love.graphics.setColor(20, 20, 20, 240)
     love.graphics.print("Welcome to Flag maker 2.0", 10, 10, 0, 1, 1)
+    
     self.createFlagButton:draw()
+    self.galleryButton:draw()
     self.quitButton:draw()
     
     -- the mouse
