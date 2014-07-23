@@ -387,7 +387,7 @@ function gameStates.createNewFlag:init()
         self.script.colorPicker:renderValCanvas()
     end
     
-    self.colorToBufferButton = TouchZone(278, 200, 16, 16)
+    self.colorToBufferButton = TouchZone(278, 200, 16, 17)
     self.colorToBufferButton.script = self
     self.colorToBufferButton.draw = function(self)
         if self.hit then
@@ -406,7 +406,7 @@ function gameStates.createNewFlag:init()
         self.script.colorBufferButton:setColor(r, g, b)
     end
     
-    self.colorBufferButton = TouchZone(258, 200, 16, 16)
+    self.colorBufferButton = TouchZone(258, 200, 16, 17)
     self.colorBufferButton.script = self
     self.colorBufferButton.color = nil
     self.colorBufferButton.draw = function(self)
@@ -438,7 +438,7 @@ function gameStates.createNewFlag:init()
         end
     end
     
-    self.splitHorizontalButton = TouchZone(60, 190, 22, 16)
+    self.splitHorizontalButton = TouchZone(60, 185, 24, 17)
     self.splitHorizontalButton.script = self
     self.splitHorizontalButton.draw = function(self)
         if self.hit then
@@ -455,16 +455,11 @@ function gameStates.createNewFlag:init()
         local selectedRegion = self.script.baseRegion:getSelected()
         if selectedRegion ~= nil then
             --self.script:pushHistoryState()
-            
             local childLeft, childRight = selectedRegion:splitHorizontal()
-            childLeft.splitHorizontal = selectedRegion.splitHorizontal
-            childRight.splitHorizontal = selectedRegion.splitHorizontal
-            childLeft.splitVertical = selectedRegion.splitVertical
-            childRight.splitVertical = selectedRegion.splitVertical
         end
     end
-    
-    self.splitVerticalButton = TouchZone(90, 190, 22, 16)
+
+    self.splitVerticalButton = TouchZone(90, 185, 24, 17)
     self.splitVerticalButton.script = self
     self.splitVerticalButton.draw = function(self)
         if self.hit then
@@ -482,10 +477,50 @@ function gameStates.createNewFlag:init()
         if selectedRegion ~= nil then
             --self.script:pushHistoryState()
             local childTop, childBottom = selectedRegion:splitVertical()
-            childTop.splitHorizontal = selectedRegion.splitHorizontal
-            childBottom.splitHorizontal = selectedRegion.splitHorizontal
-            childTop.splitVertical = selectedRegion.splitVertical
-            childBottom.splitVertical = selectedRegion.splitVertical
+        end
+    end
+
+    self.divideHorizontalButton = TouchZone(60, 205, 24, 17)
+    self.divideHorizontalButton.script = self
+    self.divideHorizontalButton.draw = function(self)
+        if self.hit then
+            love.graphics.setColor(50, 50, 50, 128)
+        else
+            love.graphics.setColor(50, 50, 50, 255)
+        end
+        love.graphics.setLineWidth(1)
+        love.graphics.rectangle("line", self.frame.origin.x + 0.5, self.frame.origin.y + 0.5, self.frame.size.x, self.frame.size.y)
+        love.graphics.rectangle("fill", self.frame.origin.x + 2, self.frame.origin.y + 2, (self.frame.size.x / 3) - 2 , self.frame.size.y - 3)
+        love.graphics.rectangle("fill", self.frame.origin.x + (self.frame.size.x / 3) + 1, self.frame.origin.y + 2, (self.frame.size.x / 3) - 1 , self.frame.size.y - 3)
+        love.graphics.rectangle("fill", self.frame.origin.x + 1 + ((self.frame.size.x / 3) * 2), self.frame.origin.y + 2, (self.frame.size.x / 3) - 2 , self.frame.size.y - 3)
+    end
+    self.divideHorizontalButton.onTouchUpInside = function (self)
+        local selectedRegion = self.script.baseRegion:getSelected()
+        if selectedRegion ~= nil then
+            --self.script:pushHistoryState()
+            local childLeft, childRight = selectedRegion:divideHorizontal()
+        end
+    end
+ 
+    self.divideVerticalButton = TouchZone(90, 205, 24, 17)
+    self.divideVerticalButton.script = self
+    self.divideVerticalButton.draw = function(self)
+        if self.hit then
+            love.graphics.setColor(50, 50, 50, 128)
+        else
+            love.graphics.setColor(50, 50, 50, 255)
+        end
+        love.graphics.setLineWidth(1)
+        love.graphics.rectangle("line", self.frame.origin.x + 0.5, self.frame.origin.y + 0.5, self.frame.size.x, self.frame.size.y)
+        love.graphics.rectangle("fill", self.frame.origin.x + 2, self.frame.origin.y + 2, self.frame.size.x - 3 , (self.frame.size.y / 3) - 2)
+        love.graphics.rectangle("fill", self.frame.origin.x + 2, self.frame.origin.y + (self.frame.size.y / 3) + 1, self.frame.size.x - 3 , (self.frame.size.y / 3) - 1)
+        love.graphics.rectangle("fill", self.frame.origin.x + 2, self.frame.origin.y + ((self.frame.size.y / 3) * 2) + 1, self.frame.size.x - 3 , (self.frame.size.y / 3) - 2)
+    end
+    self.divideVerticalButton.onTouchUpInside = function (self)
+        local selectedRegion = self.script.baseRegion:getSelected()
+        if selectedRegion ~= nil then
+            --self.script:pushHistoryState()
+            local childLeft, childRight = selectedRegion:divideVertical()
         end
     end
     
@@ -538,27 +573,30 @@ function gameStates.createNewFlag:init()
             self.script.colorPicker:setColor(r, g, b)
         end
     end
+    
+    self.baseRegion.inheritChild = function(self, child, selected)
+        child.script = self.script
+        child.children = {}
+        child.selected = selected or false
+        child.color = self.color
+        child.getSelected = self.script.baseRegion.getSelected
+        child.draw = self.script.baseRegion.draw
+        child.onTouchUpInside = self.script.baseRegion.onTouchUpInside
+        child.toFileString = self.script.baseRegion.toFileString
+        child.splitHorizontal = self.script.baseRegion.splitHorizontal
+        child.splitVertical = self.script.baseRegion.splitVertical
+        child.divideHorizontal = self.script.baseRegion.divideHorizontal
+        child.divideVertical = self.script.baseRegion.divideVertical
+	child.inheritChild = self.script.baseRegion.inheritChild
+    end
+    
     self.baseRegion.splitHorizontal = function(self)
         local childLeft, childRight
         childLeft = TouchZone(self.frame.origin.x, self.frame.origin.y, self.frame.size.x / 2, self.frame.size.y)
-        childLeft.script = self.script
-        childLeft.children = {}
-        childLeft.selected = true
-        childLeft.color = self.color
-        childLeft.getSelected = self.script.baseRegion.getSelected
-        childLeft.draw = self.script.baseRegion.draw
-        childLeft.onTouchUpInside = self.script.baseRegion.onTouchUpInside
-        childLeft.toFileString = self.script.baseRegion.toFileString
-        ----
         childRight = TouchZone(self.frame.origin.x + self.frame.size.x / 2, self.frame.origin.y, self.frame.size.x / 2, self.frame.size.y)
-        childRight.script = self.script
-        childRight.children = {}
-        childRight.selected = false
-        childRight.color = self.color
-        childRight.getSelected = self.script.baseRegion.getSelected
-        childRight.draw = self.script.baseRegion.draw
-        childRight.onTouchUpInside = self.script.baseRegion.onTouchUpInside
-        childRight.toFileString = self.script.baseRegion.toFileString
+        
+	self:inheritChild(childLeft, true)
+	self:inheritChild(childRight)
         
         self:addChild(childLeft)
         self:addChild(childRight)
@@ -568,30 +606,50 @@ function gameStates.createNewFlag:init()
     self.baseRegion.splitVertical = function(self)
         local childTop, childBottom
         childTop = TouchZone(self.frame.origin.x, self.frame.origin.y, self.frame.size.x, self.frame.size.y / 2)
-        childTop.script = self.script
-        childTop.children = {}
-        childTop.selected = true
-        childTop.color = self.color
-        childTop.getSelected = self.script.baseRegion.getSelected
-        childTop.draw = self.script.baseRegion.draw
-        childTop.onTouchUpInside = self.script.baseRegion.onTouchUpInside
-        childTop.toFileString = self.script.baseRegion.toFileString
-        ----
         childBottom = TouchZone(self.frame.origin.x, self.frame.origin.y + self.frame.size.y / 2, self.frame.size.x, self.frame.size.y / 2)
-        childBottom.script = self.script
-        childBottom.children = {}
-        childBottom.selected = false
-        childBottom.color = self.color
-        childBottom.getSelected = self.script.baseRegion.getSelected
-        childBottom.draw = self.script.baseRegion.draw
-        childBottom.onTouchUpInside = self.script.baseRegion.onTouchUpInside
-        childBottom.toFileString = self.script.baseRegion.toFileString
+        
+	self:inheritChild(childTop, true)
+	self:inheritChild(childBottom)
         
         self:addChild(childTop)
         self:addChild(childBottom)
         
         return childTop, childBottom
     end
+    self.baseRegion.divideHorizontal = function(self)
+        local childLeft, childRight
+        childLeft = TouchZone(self.frame.origin.x, self.frame.origin.y, self.frame.size.x / 3, self.frame.size.y)
+        childMiddle = TouchZone(self.frame.origin.x + self.frame.size.x / 3, self.frame.origin.y, self.frame.size.x / 3, self.frame.size.y)
+        childRight = TouchZone(self.frame.origin.x + ((self.frame.size.x / 3) * 2), self.frame.origin.y, self.frame.size.x / 3, self.frame.size.y)
+        
+	self:inheritChild(childLeft)
+	self:inheritChild(childMiddle, true)
+	self:inheritChild(childRight)
+        
+        self:addChild(childLeft)
+        self:addChild(childMiddle)
+        self:addChild(childRight)
+        
+	return childLeft, childMiddle, childRight
+    end
+    self.baseRegion.divideVertical = function(self)
+        local childTop, childMiddle, childBottom
+        childTop = TouchZone(self.frame.origin.x, self.frame.origin.y, self.frame.size.x, self.frame.size.y / 3)
+        childMiddle = TouchZone(self.frame.origin.x, self.frame.origin.y + self.frame.size.y / 3, self.frame.size.x, self.frame.size.y / 3)
+        childBottom = TouchZone(self.frame.origin.x, self.frame.origin.y + ((self.frame.size.y / 3) * 2), self.frame.size.x, self.frame.size.y / 3)
+        
+	self:inheritChild(childTop)
+	self:inheritChild(childMiddle, true)
+	self:inheritChild(childBottom)
+        
+        self:addChild(childTop)
+        self:addChild(childMiddle)
+        self:addChild(childBottom)
+        
+	return childTop, childMiddle, childBottom
+    end
+
+
     self.baseRegion.toFileString = function(self)
         if #self.children == 0 then
             return self.frame.origin.x.." "..self.frame.origin.y.." "..self.frame.size.x.." "..self.frame.size.y.." "..self.color[1].." "..self.color[2].." "..self.color[3].."\r\n"
@@ -694,6 +752,8 @@ function gameStates.createNewFlag:init()
     table.insert(self.rootTouchZones, self.colorTool)
     table.insert(self.rootTouchZones, self.splitHorizontalButton)
     table.insert(self.rootTouchZones, self.splitVerticalButton)
+    table.insert(self.rootTouchZones, self.divideHorizontalButton)
+    table.insert(self.rootTouchZones, self.divideVerticalButton)
     table.insert(self.rootTouchZones, self.colorToBufferButton)
     table.insert(self.rootTouchZones, self.colorBufferButton)
     table.insert(self.rootTouchZones, self.saveButton)
@@ -739,6 +799,8 @@ function gameStates.createNewFlag:draw()
         self.colorBufferButton:draw()
         self.splitHorizontalButton:draw()
         self.splitVerticalButton:draw()
+	self.divideHorizontalButton:draw()
+	self.divideVerticalButton:draw()
     end
     self.saveButton:draw()
     --self.undoButton:draw()
