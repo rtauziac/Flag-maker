@@ -6,6 +6,8 @@ local Timer = require "hump.timer"
 local Rectangle = require "rectangle"
 local TouchZone = require "touchZone"
 
+local useShader = false
+
 local min, max, floor = math.min, math.max, math.floor
 
 function printHierarchy(root, topLevel)
@@ -35,10 +37,13 @@ local computerFontSmall = love.graphics.newFont("assets/data-latin.ttf", 10)
 
 local selectedRegion = nil
 
+local directory = "flags/"
+
 local gameStates = {
     intro = {},
     menu = {},
-    createNewFlag = {}
+    createNewFlag = {},
+    gallery = {}
 }
 
 function RGBtoHSV(r, g, b)
@@ -114,15 +119,26 @@ end
 function gameStates.intro:init()
     self.textString = [[user@love: session started
 >flagmaker
-Welcome to flag maker #2.0
-Program made by (c)Crazyrems
-loading GUI]]
+Welcome to flag maker #2.0 (c)Crazyrems
+
+The ultimate experience for creating the 
+best flags in the world
+
+`alt + return' for fullscreen
+`s' for toogle screen effects
+
+press any key to start the modern Interface
+]]
     self.currentTextDisplay = ""
-    Timer.addPeriodic(0.012, function()
+    Timer.addPeriodic(0.008, function()
         self.currentTextDisplay = self.textString:sub(1, self.currentTextDisplay:len() + 1)
     end, self.textString:len())
     
-    Timer.add(5.12, function() Gamestate.switch(gameStates.menu) end)
+    --Timer.add(5.12, function() Gamestate.switch(gameStates.menu) end)
+end
+
+function gameStates.intro:keypressed()
+    Gamestate.switch(gameStates.menu)
 end
 
 function gameStates.intro:draw()
@@ -157,6 +173,7 @@ function gameStates.menu:init()
         Gamestate.push(gameStates.createNewFlag)
     end
     
+    --[[
     self.galleryButton = TouchZone(15, 55, 40, 15)
     self.galleryButton.draw = function(self)
         if self.hit then
@@ -170,8 +187,9 @@ function gameStates.menu:init()
         love.graphics.rectangle("line", self.frame.origin.x + 0.5, self.frame.origin.y + 0.5, self.frame.size.x, self.frame.size.y)
     end
     self.galleryButton.onTouchUpInside = function(self)
-        --love.event.quit()
+        Gamestate.push(gameStates.gallery)
     end
+    --]]
     
     self.quitButton = TouchZone(15, 75, 24, 15)
     self.quitButton.draw = function(self)
@@ -190,7 +208,7 @@ function gameStates.menu:init()
     end
     
     table.insert(self.rootTouchZones, self.createFlagButton)
-    table.insert(self.rootTouchZones, self.galleryButton)
+    --table.insert(self.rootTouchZones, self.galleryButton)
     table.insert(self.rootTouchZones, self.quitButton)
 end
 
@@ -233,7 +251,7 @@ function gameStates.menu:draw()
     love.graphics.print("Welcome to Flag maker 2.0", 10, 10, 0, 1, 1)
     
     self.createFlagButton:draw()
-    self.galleryButton:draw()
+    --self.galleryButton:draw()
     self.quitButton:draw()
     
     -- the mouse
@@ -762,14 +780,16 @@ function gameStates.createNewFlag:init()
     end
     --]]
     
+    
     self.saveFlag = function(self)
+        love.filesystem.createDirectory(directory)
         local baseName = "flag"
         local extention = ".flag"
-        local fileName = baseName..extention
+        local fileName = directory..baseName..extention
         local index = 0
         while love.filesystem.exists(fileName) do
             index = index + 1
-            fileName = baseName..index..extention
+            fileName = directory..baseName..index..extention
         end
         local file = love.filesystem.newFile(fileName, "w")
         if file then
@@ -784,6 +804,7 @@ function gameStates.createNewFlag:init()
         if selection then selection.selected = false end
     end
     
+    --[[
     self.saveButton = TouchZone(15, 35, 25, 15)
     self.saveButton.script = self
     self.saveButton.draw = function(self)
@@ -801,6 +822,7 @@ function gameStates.createNewFlag:init()
         self.script:saveFlag()
         Gamestate.pop()
     end
+    --]]
     
     table.insert(self.rootTouchZones, self.backButton)
     --table.insert(self.rootTouchZones, self.undoButton)
@@ -813,7 +835,7 @@ function gameStates.createNewFlag:init()
     table.insert(self.rootTouchZones, self.mergeButton)
     table.insert(self.rootTouchZones, self.colorToBufferButton)
     table.insert(self.rootTouchZones, self.colorBufferButton)
-    table.insert(self.rootTouchZones, self.saveButton)
+    --table.insert(self.rootTouchZones, self.saveButton)
     
     table.insert(self.rootTouchZones, self.unfocus)
     self.unfocus:addChild(self.baseRegion)
@@ -829,10 +851,6 @@ function gameStates.createNewFlag:enter()
     self.colorPicker:renderHueCanvas()
     self.colorPicker:renderSatCanvas()
     self.colorPicker:renderValCanvas()
-end
-
-function gameStates.createNewFlag:update()
-    
 end
 
 function gameStates.createNewFlag:draw()
@@ -860,7 +878,7 @@ function gameStates.createNewFlag:draw()
     self.divideHorizontalButton:draw()
     self.divideVerticalButton:draw()
     end
-    self.saveButton:draw()
+    --self.saveButton:draw()
     --self.undoButton:draw()
     
     -- the mouse
@@ -898,9 +916,119 @@ function gameStates.createNewFlag:mousereleased(x, y, button)
     end
 end
 
+function gameStates.gallery:init()
+    self.rootTouchZones = {}
+    
+    self.backButton = TouchZone(15, 15, 25, 15)
+    self.backButton.draw = function(self)
+        if self.hit then
+            love.graphics.setColor(50, 50, 50, 128)
+        else
+            love.graphics.setColor(50, 50, 50, 255)
+        end
+        love.graphics.setFont(computerFontSmall)
+        love.graphics.setLineWidth(1)
+        love.graphics.print("back", self.frame.origin.x + 2, self.frame.origin.y + 2)
+        love.graphics.rectangle("line", self.frame.origin.x + 0.5, self.frame.origin.y + 0.5, self.frame.size.x, self.frame.size.y)
+    end
+    self.backButton.onTouchUpInside = function(self, position, delta)
+        Gamestate.pop()
+    end
+    
+    table.insert(self.rootTouchZones, self.backButton)
+end
+
+function gameStates.gallery:enter()
+    self.index = 1
+    self.flags = {}
+    
+    for index, path in ipairs(love.filesystem.getDirectoryItems(directory)) do
+        print(path)
+        self.flags[index] = directory..path
+    end
+end
+
+function gameStates.gallery:draw()
+    local convertedTouchLocation = (Vector2(love.mouse.getPosition()) * screenScale) - Vector2(((love.window.getWidth() * screenScale) - designResolution.x) / 2, 0)
+    convertedTouchLocation.x = floor(convertedTouchLocation.x)
+    convertedTouchLocation.y = floor(convertedTouchLocation.y)
+    
+    love.graphics.setCanvas(mainCanvas)
+    love.graphics.setColor(255, 255, 255, 255)
+    love.graphics.rectangle("fill", unpack(backgroundSize))
+    
+    self.backButton:draw()
+    
+    -- the flag
+    
+    
+    local file, errorstr = love.filesystem.newFile(self.flags[self.index], "r")
+    assert(errorstr == nil)
+    for line in file:lines() do
+        local x, y, width, height, reb, green, blue
+        local wordCount = 1
+        print(line)
+        for word in line:gmatch("%w+") do
+            if wordCount == 1 then
+                x = tonumber(word)
+            elseif wordCount == 2 then
+                y = tonumber(word)
+            elseif wordCount == 3 then
+                width = tonumber(word)
+            elseif wordCount == 4 then
+                height = tonumber(word)
+            elseif wordCount == 5 then
+                red = tonumber(word)
+            elseif wordCount == 6 then
+                green = tonumber(word)
+            else
+                blue = tonumber(word)
+            end
+            wordCount = wordCount + 1
+        end
+        
+        love.graphics.setColor(red, green, blue, 255)
+        love.graphics.rectangle("fill", x, y, width, height)
+    end
+    
+    -- the mouse
+    love.graphics.setColor(0, 0, 0, 180)
+    love.graphics.rectangle("fill", convertedTouchLocation.x - 4, convertedTouchLocation.y, 3, 1)
+    love.graphics.rectangle("fill", convertedTouchLocation.x + 2, convertedTouchLocation.y, 3, 1)
+    love.graphics.rectangle("fill", convertedTouchLocation.x, convertedTouchLocation.y - 4, 1, 3)
+    love.graphics.rectangle("fill", convertedTouchLocation.x, convertedTouchLocation.y + 2, 1, 3)
+    love.graphics.setCanvas()
+end
+
+function gameStates.gallery:mousepressed(x, y, button)
+    local convertedTouchLocation = (Vector2(x, y) * screenScale) - Vector2(((love.window.getWidth() * screenScale) - designResolution.x) / 2, 0)
+    if button == "l" then
+        local zoneHit = nil
+        for _, zone in ipairs(self.rootTouchZones) do
+            zoneHit = zone:touchInside(convertedTouchLocation)
+            if zoneHit then break end
+        end
+        if zoneHit then
+            zoneHit:onTouchDown(convertedTouchLocation)
+            table.insert(propagateLeftMouseEvent, zoneHit)
+        end
+    end
+end
+
+function gameStates.gallery:mousereleased(x, y, button)
+    local convertedTouchLocation = (Vector2(x, y) * screenScale) - Vector2(((love.window.getWidth() * screenScale) - designResolution.x) / 2, 0)
+    if button == "l" then
+        for _, zone in ipairs(propagateLeftMouseEvent) do
+            zone:onTouchUp(convertedTouchLocation)
+        end
+        
+        propagateLeftMouseEvent = {}
+    end
+end
+
 function love.load()
     Gamestate.registerEvents()
-    Gamestate.switch(gameStates.menu)
+    Gamestate.switch(gameStates.intro)
     --modes = love.window.getFullscreenModes()
     --table.sort(modes, function(a, b) return a.width * a.height < b.width * b.height end)
     love.window.setMode(designResolution.x * 2, designResolution.y * 2, {resizable = true, fullscreen = false, minwidth = designResolution.x, minheight = designResolution.y})
@@ -944,7 +1072,9 @@ end
 
 function love.draw()
     sceneCamera:attach()
-    love.graphics.setShader(mainShader)
+    if useShader then
+        love.graphics.setShader(mainShader)
+    end
     love.graphics.setColor(15, 30, 15, 255)
     love.graphics.rectangle("fill", unpack(backgroundSize))
     love.graphics.setColor(255, 255, 255, 255)
@@ -959,6 +1089,8 @@ function love.keypressed(key, isrepeat)
         if love.keyboard.isDown("lalt") then
             success = love.window.setFullscreen(not love.window.getFullscreen())
         end
+    elseif key == "s" then
+        useShader = not useShader
    end
 end
 
