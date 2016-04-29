@@ -6,7 +6,7 @@ local Timer = require "hump.timer"
 local Rectangle = require "rectangle"
 local TouchZone = require "touchZone"
 
-local useShader = false
+local useShader = true
 
 local min, max, floor = math.min, math.max, math.floor
 
@@ -124,11 +124,13 @@ Welcome to flag maker #2.0 (c)Crazyrems
 The ultimate experience for creating the 
 best flags in the world
 
-`alt + return' for fullscreen
-`s' for toogle screen effects
-
 press any key to start the modern Interface
 ]]
+
+-- `alt + return' for fullscreen
+-- `s' for toogle screen effects
+
+
     self.currentTextDisplay = ""
     Timer.addPeriodic(0.008, function()
         self.currentTextDisplay = self.textString:sub(1, self.currentTextDisplay:len() + 1)
@@ -137,13 +139,17 @@ press any key to start the modern Interface
     --Timer.add(5.12, function() Gamestate.switch(gameStates.menu) end)
 end
 
+function gameStates.intro:mousepressed()
+    Gamestate.switch(gameStates.menu)
+end
+
 function gameStates.intro:keypressed()
     Gamestate.switch(gameStates.menu)
 end
 
 function gameStates.intro:draw()
     love.graphics.setCanvas(mainCanvas)
-    mainCanvas:clear()
+    love.graphics.clear()
     love.graphics.setColor(60, 255, 60, 240)
     local mark = ""
     if elapsedTime % 1 < 0.5 then
@@ -213,8 +219,8 @@ function gameStates.menu:init()
 end
 
 function gameStates.menu:mousepressed(x, y, button)
-    local convertedTouchLocation = (Vector2(x, y) * screenScale) - Vector2(((love.window.getWidth() * screenScale) - designResolution.x) / 2, 0)
-    if button == "l" then
+    local convertedTouchLocation = (Vector2(x, y) * screenScale) - Vector2(((love.graphics.getWidth() * screenScale) - designResolution.x) / 2, 0)
+    if button == 1 then
         local zoneHit = nil
         for _, zone in ipairs(self.rootTouchZones) do
             zoneHit = zone:touchInside(convertedTouchLocation)
@@ -228,8 +234,8 @@ function gameStates.menu:mousepressed(x, y, button)
 end
 
 function gameStates.menu:mousereleased(x, y, button)
-    local convertedTouchLocation = (Vector2(x, y) * screenScale) - Vector2(((love.window.getWidth() * screenScale) - designResolution.x) / 2, 0)
-    if button == "l" then
+    local convertedTouchLocation = (Vector2(x, y) * screenScale) - Vector2(((love.graphics.getWidth() * screenScale) - designResolution.x) / 2, 0)
+    if button == 1 then
         for _, zone in ipairs(propagateLeftMouseEvent) do
             zone:onTouchUp(convertedTouchLocation)
         end
@@ -239,7 +245,7 @@ function gameStates.menu:mousereleased(x, y, button)
 end
 
 function gameStates.menu:draw()
-    local convertedTouchLocation = (Vector2(love.mouse.getPosition()) * screenScale) - Vector2(((love.window.getWidth() * screenScale) - designResolution.x) / 2, 0)
+    local convertedTouchLocation = (Vector2(love.mouse.getPosition()) * screenScale) - Vector2(((love.graphics.getWidth() * screenScale) - designResolution.x) / 2, 0)
     convertedTouchLocation.x = floor(convertedTouchLocation.x)
     convertedTouchLocation.y = floor(convertedTouchLocation.y)
     
@@ -854,7 +860,7 @@ function gameStates.createNewFlag:enter()
 end
 
 function gameStates.createNewFlag:draw()
-    local convertedTouchLocation = (Vector2(love.mouse.getPosition()) * screenScale) - Vector2(((love.window.getWidth() * screenScale) - designResolution.x) / 2, 0)
+    local convertedTouchLocation = (Vector2(love.mouse.getPosition()) * screenScale) - Vector2(((love.graphics.getWidth() * screenScale) - designResolution.x) / 2, 0)
     convertedTouchLocation.x = floor(convertedTouchLocation.x)
     convertedTouchLocation.y = floor(convertedTouchLocation.y)
     
@@ -891,8 +897,8 @@ function gameStates.createNewFlag:draw()
 end
 
 function gameStates.createNewFlag:mousepressed(x, y, button)
-    local convertedTouchLocation = (Vector2(x, y) * screenScale) - Vector2(((love.window.getWidth() * screenScale) - designResolution.x) / 2, 0)
-    if button == "l" then
+    local convertedTouchLocation = (Vector2(x, y) * screenScale) - Vector2(((love.graphics.getWidth() * screenScale) - designResolution.x) / 2, 0)
+    if button == 1 then
         local zoneHit = nil
         for _, zone in ipairs(self.rootTouchZones) do
             zoneHit = zone:touchInside(convertedTouchLocation)
@@ -906,8 +912,8 @@ function gameStates.createNewFlag:mousepressed(x, y, button)
 end
 
 function gameStates.createNewFlag:mousereleased(x, y, button)
-    local convertedTouchLocation = (Vector2(x, y) * screenScale) - Vector2(((love.window.getWidth() * screenScale) - designResolution.x) / 2, 0)
-    if button == "l" then
+    local convertedTouchLocation = (Vector2(x, y) * screenScale) - Vector2(((love.graphics.getWidth() * screenScale) - designResolution.x) / 2, 0)
+    if button == 1 then
         for _, zone in ipairs(propagateLeftMouseEvent) do
             zone:onTouchUp(convertedTouchLocation)
         end
@@ -949,7 +955,7 @@ function gameStates.gallery:enter()
 end
 
 function gameStates.gallery:draw()
-    local convertedTouchLocation = (Vector2(love.mouse.getPosition()) * screenScale) - Vector2(((love.window.getWidth() * screenScale) - designResolution.x) / 2, 0)
+    local convertedTouchLocation = (Vector2(love.mouse.getPosition()) * screenScale) - Vector2(((love.graphics.getWidth() * screenScale) - designResolution.x) / 2, 0)
     convertedTouchLocation.x = floor(convertedTouchLocation.x)
     convertedTouchLocation.y = floor(convertedTouchLocation.y)
     
@@ -1001,8 +1007,8 @@ function gameStates.gallery:draw()
 end
 
 function gameStates.gallery:mousepressed(x, y, button)
-    local convertedTouchLocation = (Vector2(x, y) * screenScale) - Vector2(((love.window.getWidth() * screenScale) - designResolution.x) / 2, 0)
-    if button == "l" then
+    local convertedTouchLocation = (Vector2(x, y) * screenScale) - Vector2(((love.graphics.getWidth() * screenScale) - designResolution.x) / 2, 0)
+    if button == 1 then
         local zoneHit = nil
         for _, zone in ipairs(self.rootTouchZones) do
             zoneHit = zone:touchInside(convertedTouchLocation)
@@ -1016,8 +1022,8 @@ function gameStates.gallery:mousepressed(x, y, button)
 end
 
 function gameStates.gallery:mousereleased(x, y, button)
-    local convertedTouchLocation = (Vector2(x, y) * screenScale) - Vector2(((love.window.getWidth() * screenScale) - designResolution.x) / 2, 0)
-    if button == "l" then
+    local convertedTouchLocation = (Vector2(x, y) * screenScale) - Vector2(((love.graphics.getWidth() * screenScale) - designResolution.x) / 2, 0)
+    if button == 1 then
         for _, zone in ipairs(propagateLeftMouseEvent) do
             zone:onTouchUp(convertedTouchLocation)
         end
@@ -1036,21 +1042,21 @@ function love.load()
     love.mouse.setVisible(false)
     
     sceneCamera = Camera()
-    sceneCamera:zoomTo(love.window.getHeight() / designResolution.y)
+    sceneCamera:zoomTo(love.graphics.getHeight() / designResolution.y)
     sceneCamera:lookAt(designResolution.x / 2, designResolution.y / 2)
-    screenScale = designResolution.y / love.window.getHeight()
+    screenScale = designResolution.y / love.graphics.getHeight()
     
     mainShader = love.graphics.newShader("shader.frag")
-    mainShader:send("screen_size", {love.window.getWidth(), love.window.getHeight()})
+    mainShader:send("screen_size", {love.graphics.getWidth(), love.graphics.getHeight()})
     mainShader:send("elapsed_time", elapsedTime)
 end
 
 function love.resize(w, h)
     sceneCamera:zoomTo(h / designResolution.y)
     sceneCamera:lookAt(designResolution.x / 2, designResolution.y / 2)
-    lineWidthRatio = 1 / love.window.getHeight()
+    lineWidthRatio = 1 / love.graphics.getHeight()
     love.graphics.setLineWidth(lineWidthRatio)
-    mainShader:send("screen_size", {love.window.getWidth(), love.window.getHeight()})
+    mainShader:send("screen_size", {love.graphics.getWidth(), love.graphics.getHeight()})
     screenScale = designResolution.y / h
 end
 
@@ -1063,7 +1069,7 @@ function love.update(dt)
     local delta = mousePosition - previousMousePosition
     previousMousePosition = mousePosition
     
-    if love.mouse.isDown("l") and (delta.x ~= 0 or delta.y ~= 0) then
+    if love.mouse.isDown(1) and (delta.x ~= 0 or delta.y ~= 0) then
         for i, shape in ipairs(propagateLeftMouseEvent) do
             shape:onTouchMove(mousePosition * screenScale, delta * screenScale)
         end
